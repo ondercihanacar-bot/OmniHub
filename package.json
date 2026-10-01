@@ -1,0 +1,19 @@
+{
+  "name": "omnihub",
+  "version": "1.0.0",
+  "description": "OmniHub - Merkezi Dağıtıcı ve Lisans Yönetim Portalı",
+  "author": "Önder Cihan ACAR",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "server": "node --experimental-sqlite server/index.js",
+    "client": "npm --prefix client run dev",
+    "build:client": "npm --prefix client run build",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "start": "node --experimental-sqlite server/index.js"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
