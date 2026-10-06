@@ -1,13 +1,14 @@
 import React from 'react';
 import { ShieldCheck, Server, Lock } from 'lucide-react';
+import OmniHubLogo from './OmniHubLogo';
 
 export default function Footer() {
   return (
     <footer className="mt-auto border-t border-slate-800/80 bg-slate-950/90 px-6 py-4 text-xs text-slate-400">
       <div className="flex flex-col md:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 text-cyan-400 font-mono text-[11px]">
-            <ShieldCheck className="w-4 h-4" />
+          <div className="flex items-center gap-2 text-cyan-400 font-mono text-[11px]">
+            <OmniHubLogo size="mini" />
             <span>OmniHub Enterprise Core</span>
           </div>
           <span className="text-slate-700">|</span>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Key, 
   Search, 
@@ -16,7 +16,9 @@ import {
   Radio, 
   ShieldAlert, 
   ExternalLink,
-  Cpu
+  Cpu,
+  Building,
+  X
 } from 'lucide-react';
 import { api } from '../api';
 import StatusBadge from '../components/StatusBadge';
@@ -29,15 +31,40 @@ export default function LicensesPage({
   initialFilters = {} 
 }) {
   const [licenses, setLicenses] = useState([]);
+  const [allCustomers, setAllCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState(initialFilters.status || '');
   const [productFilter, setProductFilter] = useState(initialFilters.product_id || '');
   const [copiedKey, setCopiedKey] = useState(null);
+  const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
+  const searchContainerRef = useRef(null);
 
+  // Müşterileri arama önerileri (autocomplete) için başlangıçta yükle
   useEffect(() => {
-    loadLicenses();
-  }, [statusFilter, productFilter]);
+    api.getCustomers().then(res => {
+      setAllCustomers(res.customers || []);
+    }).catch(() => {});
+  }, []);
+
+  // Dışarı tıklandığında öneri dropdown'ını kapat
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setIsSuggestionsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Arama metni, durum veya ürün filtresi değiştikçe anlık debounced sorgu
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadLicenses();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [search, statusFilter, productFilter]);
 
   async function loadLicenses() {
     setLoading(true);
@@ -54,11 +81,6 @@ export default function LicensesPage({
       setLoading(false);
     }
   }
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    loadLicenses();
-  };
 
   const copyKey = (key) => {
     navigator.clipboard.writeText(key);
@@ -110,21 +132,109 @@ export default function LicensesPage({
     window.location.href = `/api/licenses/${lic.id}/export`;
   };
 
+  // Eşleşen Müşteri Önerileri (Autocomplete Dropdown Listesi)
+  const customerSuggestions = (allCustomers || []).filter((c) => {
+    if (!search.trim()) return false;
+    const term = search.trim().toLocaleLowerCase('tr-TR');
+    return (
+      (c.company_name || '').toLocaleLowerCase('tr-TR').includes(term) ||
+      (c.contact_name || '').toLocaleLowerCase('tr-TR').includes(term) ||
+      (c.city || '').toLocaleLowerCase('tr-TR').includes(term) ||
+      (c.tax_number || '').includes(term)
+    );
+  }).slice(0, 5);
+
+  // Tabloda Anlık 0ms İstemci Filtrelemesi (Gecikmesiz Canlı Arama)
+  const displayedLicenses = licenses.filter((lic) => {
+    if (!search.trim()) return true;
+    const term = search.trim().toLocaleLowerCase('tr-TR');
+    const compName = (lic.company_name || '').toLocaleLowerCase('tr-TR');
+    const contactName = (lic.contact_name || '').toLocaleLowerCase('tr-TR');
+    const key = (lic.license_key || '').toLocaleLowerCase('tr-TR');
+    const hwid = (lic.hardware_id || '').toLocaleLowerCase('tr-TR');
+    const prod = (lic.product_name || '').toLocaleLowerCase('tr-TR');
+    return (
+      compName.includes(term) ||
+      contactName.includes(term) ||
+      key.includes(term) ||
+      hwid.includes(term) ||
+      prod.includes(term)
+    );
+  });
+
   return (
     <div className="p-6 space-y-6">
       {/* Top Filter and Search Bar */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-        {/* Search */}
-        <form onSubmit={handleSearchSubmit} className="relative w-full md:w-96">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Lisans anahtarı, müşteri veya donanım ara..."
-            className="w-full bg-slate-900 border border-slate-700/80 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
-          />
-          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
-        </form>
+        {/* Canlı Arama Kutusu ve Otomatik Tamamlama Dropdown'ı */}
+        <div ref={searchContainerRef} className="relative w-full md:w-96">
+          <div className="relative">
+            <input
+              type="text"
+              value={search}
+              onFocus={() => setIsSuggestionsOpen(true)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setIsSuggestionsOpen(true);
+              }}
+              placeholder="Firma adı, lisans anahtarı veya yetkili ara..."
+              className="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-lg pl-9 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-all shadow-inner"
+            />
+            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+            {search && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch('');
+                  setIsSuggestionsOpen(false);
+                }}
+                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                title="Aramayı Temizle"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Autocomplete Müşteri Öneri Açılır Listesi */}
+          {isSuggestionsOpen && customerSuggestions.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1.5 z-40 bg-slate-900/95 border border-cyan-500/70 rounded-xl shadow-[0_10px_35px_rgba(0,0,0,0.8)] overflow-hidden backdrop-blur-xl animate-in fade-in slide-in-from-top-1 duration-150">
+              <div className="px-3 py-2 border-b border-slate-800 bg-slate-950/90 text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-wider flex items-center justify-between">
+                <span>Eşleşen Müşteriler ({customerSuggestions.length})</span>
+                <span className="text-slate-500 text-[9px] font-sans">Seçmek için tıklayınız</span>
+              </div>
+              <div className="divide-y divide-slate-800/60 max-h-64 overflow-y-auto">
+                {customerSuggestions.map((cust) => (
+                  <div
+                    key={cust.id}
+                    onMouseDown={() => {
+                      setSearch(cust.company_name);
+                      setIsSuggestionsOpen(false);
+                    }}
+                    className="p-2.5 hover:bg-cyan-950/50 hover:border-l-2 hover:border-l-cyan-400 transition-all cursor-pointer flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-7 h-7 rounded-lg bg-cyan-950/80 border border-cyan-800/60 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-600 group-hover:text-white transition-colors shrink-0">
+                        <Building className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors truncate">
+                          {cust.company_name}
+                        </div>
+                        <div className="text-[10px] text-slate-400 truncate">
+                          {cust.contact_name} {cust.city ? `• ${cust.city}` : ''} {cust.phone ? `• ${cust.phone}` : ''}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400 group-hover:text-cyan-300 px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700/60 shrink-0 ml-2">
+                      Filtrele →
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Filters and New License Button */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
@@ -154,8 +264,9 @@ export default function LicensesPage({
 
           {/* New License Button */}
           <button
+            type="button"
             onClick={onOpenGenerator}
-            className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg text-xs font-bold shadow-[0_0_12px_rgba(6,182,212,0.3)] flex items-center gap-2 transition-all hover:scale-[1.02]"
+            className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg text-xs font-bold shadow-[0_0_12px_rgba(6,182,212,0.3)] flex items-center gap-2 transition-all hover:scale-[1.02] cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>YENİ LİSANS ÜRET</span>
@@ -186,14 +297,23 @@ export default function LicensesPage({
                     Lisans veritabanı taranıyor...
                   </td>
                 </tr>
-              ) : licenses.length === 0 ? (
+              ) : displayedLicenses.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-500">
-                    Arama kriterlerine uygun lisans bulunamadı.
+                  <td colSpan={7} className="py-8 text-center text-slate-500 space-y-2">
+                    <p>Arama kriterlerine uygun lisans bulunamadı {search ? `("${search}")` : ''}.</p>
+                    {search && (
+                      <button
+                        type="button"
+                        onClick={() => setSearch('')}
+                        className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-semibold cursor-pointer transition-colors"
+                      >
+                        Aramayı Sıfırla
+                      </button>
+                    )}
                   </td>
                 </tr>
               ) : (
-                licenses.map((lic) => {
+                displayedLicenses.map((lic) => {
                   const isCopied = copiedKey === lic.license_key;
                   return (
                     <tr key={lic.id} className="hover:bg-slate-900/50 transition-colors">
@@ -204,9 +324,10 @@ export default function LicensesPage({
                             {lic.license_key}
                           </span>
                           <button
+                            type="button"
                             onClick={() => copyKey(lic.license_key)}
                             title="Anahtarı Kopyala"
-                            className="text-slate-400 hover:text-cyan-300 p-0.5"
+                            className="text-slate-400 hover:text-cyan-300 p-0.5 cursor-pointer"
                           >
                             {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                           </button>
@@ -221,59 +342,55 @@ export default function LicensesPage({
                         </div>
                       </td>
 
-                      {/* Customer */}
+                      {/* Customer Info */}
                       <td className="py-3 px-4">
-                        <div className="font-semibold text-slate-200">
+                        <div className="font-bold text-slate-200">
                           {lic.company_name}
                         </div>
-                        <div className="text-[11px] text-slate-400">
+                        <div className="text-[11px] text-slate-400 mt-0.5">
                           {lic.contact_name} {lic.customer_city ? `• ${lic.customer_city}` : ''}
                         </div>
                       </td>
 
-                      {/* Type & Expiry */}
+                      {/* Tier & Validity */}
                       <td className="py-3 px-4">
-                        <div className="font-medium text-slate-300 capitalize">
-                          {lic.license_type === 'yearly' && '1 Yıllık'}
-                          {lic.license_type === '2year' && '2 Yıllık'}
-                          {lic.license_type === '3year' && '3 Yıllık'}
-                          {lic.license_type === 'monthly' && 'Aylık'}
-                          {lic.license_type === 'lifetime' && 'Süresiz'}
-                          {lic.license_type === 'demo' && 'Demo'}
-                        </div>
-                        <div className="text-[11px] font-mono mt-0.5">
+                        <span className="text-slate-300 capitalize font-medium block">
+                          {lic.license_type === 'yearly' ? '1 Yıllık' : lic.license_type === 'lifetime' ? 'Süresiz' : lic.license_type}
+                        </span>
+                        <span className="text-[11px] font-mono text-slate-400">
                           {lic.end_date ? (
-                            <span className={lic.days_remaining !== null && lic.days_remaining <= 15 ? 'text-amber-400 font-bold' : 'text-slate-400'}>
+                            <span className={lic.days_remaining <= 15 ? 'text-amber-400 font-bold' : ''}>
                               {lic.end_date} ({lic.days_remaining} gün)
                             </span>
                           ) : (
                             <span className="text-emerald-400">Ömür Boyu</span>
                           )}
-                        </div>
+                        </span>
                       </td>
 
-                      {/* Quotas & Modules */}
+                      {/* Limits & Modules */}
                       <td className="py-3 px-4">
-                        <div className="font-mono text-slate-300">
+                        <div className="text-slate-300 font-mono font-medium">
                           {lic.max_devices} Cihaz / {lic.max_users} Kullanıcı
                         </div>
-                        <div className="text-[10px] text-slate-500 mt-0.5 truncate max-w-xs" title={(lic.enabled_modules || []).join(', ')}>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
                           {lic.enabled_modules?.length || 0} Aktif Modül
                         </div>
                       </td>
 
-                      {/* HWID Hardware Lock */}
+                      {/* HWID Lock */}
                       <td className="py-3 px-4 font-mono text-[11px]">
                         {lic.hardware_id ? (
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 text-cyan-400/90">
                             <Cpu className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                            <span className="text-slate-300 truncate max-w-[120px]" title={lic.hardware_id}>
+                            <span className="truncate max-w-[120px]" title={lic.hardware_id}>
                               {lic.hardware_id}
                             </span>
                             <button
+                              type="button"
                               onClick={() => handleResetHwid(lic)}
-                              title="Donanım Kilidini Sıfırla (HWID Reset)"
-                              className="text-slate-400 hover:text-amber-400 p-0.5"
+                              title="Donanım Kilidini Sıfırla (Yeni sunucuya izin ver)"
+                              className="text-slate-500 hover:text-amber-400 p-0.5 cursor-pointer ml-1"
                             >
                               <RotateCcw className="w-3 h-3" />
                             </button>
@@ -295,9 +412,10 @@ export default function LicensesPage({
                         <div className="flex items-center justify-end gap-1.5">
                           {/* Remote Killswitch / Freeze Toggle */}
                           <button
+                            type="button"
                             onClick={() => handleToggleFreeze(lic)}
                             title={lic.status === 'suspended' ? 'Lisansı Yeniden Aktifleştir' : 'Uzaktan Lisansı Dondur (Askıya Al)'}
-                            className={`p-1.5 rounded-md border transition-colors ${
+                            className={`p-1.5 rounded-md border transition-colors cursor-pointer ${
                               lic.status === 'suspended'
                                 ? 'bg-emerald-950/80 border-emerald-600 text-emerald-300 hover:bg-emerald-900'
                                 : 'bg-amber-950/80 border-amber-600 text-amber-300 hover:bg-amber-900'
@@ -308,45 +426,50 @@ export default function LicensesPage({
 
                           {/* Renew / Extend */}
                           <button
+                            type="button"
                             onClick={() => onOpenRenew(lic)}
                             title="Süre Uzat / Yenile"
-                            className="p-1.5 rounded-md bg-slate-900 border border-slate-700 text-slate-300 hover:text-cyan-400 hover:border-cyan-500 transition-colors"
+                            className="p-1.5 rounded-md bg-slate-900 border border-slate-700 text-slate-300 hover:text-cyan-400 hover:border-cyan-500 transition-colors cursor-pointer"
                           >
                             <RefreshCw className="w-4 h-4" />
                           </button>
 
                           {/* Certificate */}
                           <button
+                            type="button"
                             onClick={() => onOpenCertificate(lic)}
                             title="A4 Resmi Sertifika Görüntüle / Yazdır"
-                            className="p-1.5 rounded-md bg-slate-900 border border-slate-700 text-slate-300 hover:text-cyan-400 hover:border-cyan-500 transition-colors"
+                            className="p-1.5 rounded-md bg-slate-900 border border-slate-700 text-slate-300 hover:text-cyan-400 hover:border-cyan-500 transition-colors cursor-pointer"
                           >
                             <Award className="w-4 h-4" />
                           </button>
 
                           {/* Download Offline Blob */}
                           <button
+                            type="button"
                             onClick={() => handleDownloadBlob(lic)}
                             title=".omnilicense Dosyasını İndir"
-                            className="p-1.5 rounded-md bg-slate-900 border border-slate-700 text-slate-300 hover:text-cyan-400 hover:border-cyan-500 transition-colors"
+                            className="p-1.5 rounded-md bg-slate-900 border border-slate-700 text-slate-300 hover:text-cyan-400 hover:border-cyan-500 transition-colors cursor-pointer"
                           >
                             <Download className="w-4 h-4" />
                           </button>
 
                           {/* Test Signal */}
                           <button
+                            type="button"
                             onClick={() => onOpenSimulator(lic.license_key)}
                             title="İstemci Sinyal Testi (Simülatör)"
-                            className="p-1.5 rounded-md bg-slate-900 border border-slate-700 text-slate-300 hover:text-emerald-400 transition-colors"
+                            className="p-1.5 rounded-md bg-slate-900 border border-slate-700 text-slate-300 hover:text-emerald-400 transition-colors cursor-pointer"
                           >
                             <Radio className="w-4 h-4" />
                           </button>
 
                           {/* Delete */}
                           <button
+                            type="button"
                             onClick={() => handleDelete(lic)}
                             title="Lisansı Sil"
-                            className="p-1.5 rounded-md bg-slate-900 border border-slate-700 text-slate-500 hover:text-rose-400 hover:border-rose-500 transition-colors"
+                            className="p-1.5 rounded-md bg-slate-900 border border-slate-700 text-slate-500 hover:text-rose-400 hover:border-rose-500 transition-colors cursor-pointer"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>

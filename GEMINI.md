@@ -18,3 +18,8 @@
 
 ## 4. Marka Standardı
 - Programın adı: **"OmniHub"** (Merkezi Dağıtıcı ve Lisans Yönetim Portalı).
+
+## 5. Kurumsal Hareketli Logo Kuralı (Kalıcı Standart)
+- OmniHub'ın resmi hareketli kurumsal logosu YALNIZCA **`C:\Users\Onder\Desktop\OmniHub\Logo-OmniHub.mp4`** (`/Logo-OmniHub.mp4`) dosyasıdır.
+- Giriş sayfasında (Login), sol menüde (Sidebar) ve program içindeki tüm logo alanlarında başka hiçbir logo veya video kullanılmaz; bu video kalıcıdır ve asla değiştirilmez/eski haline döndürülmez.
+- Arka planı derin siber lacivert (`#020617` / Slate-950) ile tam uyumlu ve `screen` harmanlama moduyla saydamlaştırılmış olarak çalışır.

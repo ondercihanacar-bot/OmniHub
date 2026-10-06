@@ -38,6 +38,20 @@ export default function LicenseGeneratorModal({ isOpen, onClose, onGenerated, in
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
     if (isOpen) {
       loadInitialData();
       setCreatedLicense(null);
@@ -163,8 +177,17 @@ export default function LicenseGeneratorModal({ isOpen, onClose, onGenerated, in
   const currentProd = products.find(p => p.id === productId);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
-      <div className="relative w-full max-w-3xl bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl overflow-hidden my-8">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-sm p-3 sm:p-6"
+    >
+      <div className="min-h-full flex items-start justify-center py-4 sm:py-6">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="relative w-full max-w-3xl bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl overflow-hidden"
+        >
         {/* Modal Top Header */}
         <div className="px-6 py-4 border-b border-slate-800 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -522,6 +545,7 @@ export default function LicenseGeneratorModal({ isOpen, onClose, onGenerated, in
             </div>
           </form>
         )}
+      </div>
       </div>
     </div>
   );

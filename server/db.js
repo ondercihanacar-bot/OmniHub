@@ -168,6 +168,31 @@ function seedData() {
     1
   );
 
+  const omnibackupModules = JSON.stringify([
+    'MSSQL Canlı Yedekleme',
+    'MySQL / MariaDB Yedekleme',
+    'VSS Volume Shadow Copy',
+    'Active Cyber Shield (Ransomware Kalkanı)',
+    'SureBackup Otomatik DR Tatbikatı',
+    'Instant VM Boot (Anında Sanallaştırma)',
+    'WORM Değiştirilemez Yedek Kilidi',
+    'Zstandard & Deduplication Sıkıştırma',
+    'Google Drive & NAS Bulut Aktarımı',
+    'Yerel Ağ Radarı & Ajan Keşfi'
+  ]);
+
+  insertProduct.run(
+    'omnibackup',
+    'OmniBackup Enterprise',
+    'BCK',
+    'Kurumsal Canlı SQL/VSS Yedekleme, Ransomware Kalkanı, WORM ve Anında DR Sanallaştırma Platformu.',
+    'ShieldCheck',
+    '2.0.0',
+    omnibackupModules,
+    JSON.stringify({ default_devices: 20, default_users: 10 }),
+    1
+  );
+
   // 3. Seed Sample Customers if table is empty
   const customerCount = db.prepare('SELECT COUNT(*) as count FROM customers').get();
   if (customerCount.count === 0) {

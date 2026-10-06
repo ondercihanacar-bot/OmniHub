@@ -1,41 +1,29 @@
 @echo off
-chcp 65001 >nul
-title OmniHub - Merkezi Dağıtıcı ve Lisans Yönetim Portalı
-color 0B
-cls
+chcp 65001 > nul
+title OmniHub - Yonetim Portali
+cd /d "%~dp0"
 
 echo ===============================================================================
-echo                OMNIHUB - MERKEZİ DAĞITICI ^& LİSANS YÖNETİM PORTALI
-echo         Designed ^& Developed by Önder Cihan ACAR © 2026. All Rights Reserved.
+echo                OMNIHUB - MERKEZI DAGITICI VE LISANS YONETIM PORTALI
+echo         Designed and Developed by Onder Cihan ACAR 2026. All Rights Reserved.
 echo ===============================================================================
 echo.
-echo [*] Sistem başlatılıyor...
-echo [*] Veritabanı: data/omnihub.db (SQLite WAL Mode)
-echo [*] Port: http://localhost:5200
-echo.
 
-:: Check node
-where node >nul 2>nul
+where node >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [HATA] Node.js sisteminizde kurulu bulunamadı!
-    echo Lütfen Node.js v22+ kurunuz.
+    echo [HATA] Node.js sisteminizde bulunamadi!
     pause
-    exit /b
+    exit /b 1
 )
 
-:: Build client if dist not found
-if not exist "client\dist" (
-    echo [*] Frontend derlemesi yapılıyor (İlk Kurulum)...
-    cd client
-    call npm run build
-    cd ..
+netstat -ano | findstr /R /C:":5200 *LISTENING" >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [*] OmniHub sunucusu baslatiliyor - Port 5200...
+    start "OmniHub Server" /min cmd /c "node --experimental-sqlite server/index.js"
+    powershell -NoProfile -Command "for ($i=0; $i -lt 15; $i++) { try { $c = New-Object System.Net.Sockets.TcpClient('127.0.0.1', 5200); $c.Close(); break } catch { Start-Sleep -Milliseconds 500 } }"
+) else (
+    echo [OK] OmniHub sunucusu zaten aktif ve calisiyor.
 )
 
-:: Open browser after 2 seconds
-start "" powershell -Command "Start-Sleep -Seconds 2; Start-Process 'http://localhost:5200'"
-
-:: Start backend server
-echo [*] OmniHub Motoru başlatılıyor (Port 5200)...
-node --experimental-sqlite server/index.js
-
-pause
+echo [OK] Tarayicida aciliyor: http://localhost:5200
+start http://localhost:5200

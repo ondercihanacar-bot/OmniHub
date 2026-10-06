@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Play, Radio, CheckCircle, AlertTriangle, ShieldAlert, Cpu } from 'lucide-react';
 import { api } from '../api';
 
@@ -12,6 +12,20 @@ export default function HeartbeatSimulatorModal({ isOpen, onClose, defaultKey = 
   
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -51,8 +65,17 @@ export default function HeartbeatSimulatorModal({ isOpen, onClose, defaultKey = 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm overflow-y-auto">
-      <div className="relative w-full max-w-xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden my-6">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-sm p-3 sm:p-6"
+    >
+      <div className="min-h-full flex items-start justify-center py-4 sm:py-8">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="relative w-full max-w-xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden"
+        >
         <div className="px-6 py-4 border-b border-slate-800 bg-slate-950 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-lg bg-emerald-950/80 border border-emerald-500/40 text-emerald-400">
@@ -199,6 +222,7 @@ export default function HeartbeatSimulatorModal({ isOpen, onClose, defaultKey = 
             </div>
           )}
         </form>
+      </div>
       </div>
     </div>
   );

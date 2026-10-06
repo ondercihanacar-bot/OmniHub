@@ -11,7 +11,8 @@ import {
   Edit3, 
   Trash2, 
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  X
 } from 'lucide-react';
 import { api } from '../api';
 import CustomerModal from '../components/CustomerModal';
@@ -24,8 +25,11 @@ export default function CustomersPage({ onOpenGenerator, onNavigateToLicenses })
   const [editingCustomer, setEditingCustomer] = useState(null);
 
   useEffect(() => {
-    loadCustomers();
-  }, []);
+    const timer = setTimeout(() => {
+      loadCustomers();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   async function loadCustomers() {
     setLoading(true);
@@ -43,6 +47,19 @@ export default function CustomersPage({ onOpenGenerator, onNavigateToLicenses })
     e.preventDefault();
     loadCustomers();
   };
+
+  const displayedCustomers = customers.filter((c) => {
+    if (!search.trim()) return true;
+    const term = search.trim().toLocaleLowerCase('tr-TR');
+    return (
+      (c.company_name || '').toLocaleLowerCase('tr-TR').includes(term) ||
+      (c.contact_name || '').toLocaleLowerCase('tr-TR').includes(term) ||
+      (c.city || '').toLocaleLowerCase('tr-TR').includes(term) ||
+      (c.email || '').toLocaleLowerCase('tr-TR').includes(term) ||
+      (c.phone || '').includes(term) ||
+      (c.tax_number || '').includes(term)
+    );
+  });
 
   const handleAdd = () => {
     setEditingCustomer(null);
@@ -68,20 +85,30 @@ export default function CustomersPage({ onOpenGenerator, onNavigateToLicenses })
     <div className="p-6 space-y-6">
       {/* Top Search & Add Bar */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-        <form onSubmit={handleSearchSubmit} className="relative w-full md:w-96">
+        <div className="relative w-full md:w-96">
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Firma adı, yetkili, şehir veya e-posta ara..."
-            className="w-full bg-slate-900 border border-slate-700/80 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+            className="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-lg pl-9 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-all"
           />
           <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
-        </form>
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="absolute right-2.5 top-2.5 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              title="Aramayı Temizle"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
 
         <button
           onClick={handleAdd}
-          className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg text-xs font-bold shadow-[0_0_12px_rgba(6,182,212,0.3)] flex items-center gap-2 transition-all hover:scale-[1.02]"
+          className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg text-xs font-bold shadow-[0_0_12px_rgba(6,182,212,0.3)] flex items-center gap-2 transition-all hover:scale-[1.02] cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>YENİ MÜŞTERİ EKLE</span>
@@ -94,12 +121,21 @@ export default function CustomersPage({ onOpenGenerator, onNavigateToLicenses })
           <div className="col-span-full py-12 text-center text-slate-400">
             Müşteri verileri yükleniyor...
           </div>
-        ) : customers.length === 0 ? (
-          <div className="col-span-full py-12 text-center text-slate-500">
-            Kayıtlı müşteri bulunamadı. "Yeni Müşteri Ekle" butonu ile ilk müşterinizi ekleyebilirsiniz.
+        ) : displayedCustomers.length === 0 ? (
+          <div className="col-span-full py-12 text-center text-slate-500 space-y-2">
+            <p>Arama kriterlerine uygun müşteri bulunamadı {search ? `("${search}")` : ''}.</p>
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-semibold cursor-pointer transition-colors"
+              >
+                Aramayı Sıfırla
+              </button>
+            )}
           </div>
         ) : (
-          customers.map((c) => (
+          displayedCustomers.map((c) => (
             <div
               key={c.id}
               className="cyber-card p-5 rounded-xl flex flex-col justify-between space-y-4"

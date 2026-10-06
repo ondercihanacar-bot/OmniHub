@@ -131,40 +131,43 @@ export default function App() {
   const currentHeader = pageHeaders[activeTab] || pageHeaders.dashboard;
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 flex cyber-grid selection:bg-cyan-500 selection:text-black">
-      {/* 1. Permanent Cyber Sidebar */}
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={(tab) => {
-          setLicenseFilters({});
-          setActiveTab(tab);
-        }}
-        onLogout={handleLogout}
-        user={user}
+    <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col cyber-grid selection:bg-cyan-500 selection:text-black">
+      {/* 1. Top Navigation Bar (Logo Kartı & ADMIN CONSOLE v1.0 - Örnek Resimle Birebir) */}
+      <Header
+        title={currentHeader.title}
+        subtitle={currentHeader.subtitle}
+        onRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
         onOpenGenerator={() => handleOpenGenerator()}
-        onOpenSimulator={() => handleOpenSimulator()}
+        user={user}
+        onLogout={handleLogout}
       />
 
-      {/* 2. Main Content Area (Full-Width, No Artificial Max-W) */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header
-          title={currentHeader.title}
-          subtitle={currentHeader.subtitle}
-          onRefresh={handleRefresh}
-          isRefreshing={isRefreshing}
+      {/* 2. Body Layout: Sol Menü & Sağ İçerik Alanı */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        {/* Permanent Cyber Sidebar (Genel Bakış ile başlar) */}
+        <Sidebar
+          activeTab={activeTab}
+          setActiveTab={(tab) => {
+            setLicenseFilters({});
+            setActiveTab(tab);
+          }}
           onOpenGenerator={() => handleOpenGenerator()}
+          onOpenSimulator={() => handleOpenSimulator()}
         />
 
-        <main className="flex-1 overflow-y-auto">
-          {activeTab === 'dashboard' && (
-            <DashboardPage
-              key={refreshTrigger}
-              onNavigate={handleNavigate}
-              onOpenGenerator={handleOpenGenerator}
-              onOpenCertificate={handleOpenCertificate}
-              onOpenRenew={handleOpenRenew}
-            />
-          )}
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+          <main className="flex-1">
+            {activeTab === 'dashboard' && (
+              <DashboardPage
+                key={refreshTrigger}
+                onNavigate={handleNavigate}
+                onOpenGenerator={handleOpenGenerator}
+                onOpenCertificate={handleOpenCertificate}
+                onOpenRenew={handleOpenRenew}
+              />
+            )}
 
           {activeTab === 'licenses' && (
             <LicensesPage
@@ -211,6 +214,7 @@ export default function App() {
         {/* 3. Permanent Page Footer */}
         <Footer />
       </div>
+    </div>
 
       {/* MODALS */}
       <LicenseGeneratorModal

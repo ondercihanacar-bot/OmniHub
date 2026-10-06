@@ -52,8 +52,8 @@ router.get('/', authenticateToken, (req, res) => {
       params.push(customer_id);
     }
     if (search) {
-      query += ' AND (l.license_key LIKE ? OR c.company_name LIKE ? OR c.contact_name LIKE ? OR l.hardware_id LIKE ?)';
-      const s = `%${search}%`;
+      query += ' AND (LOWER(l.license_key) LIKE ? OR LOWER(c.company_name) LIKE ? OR LOWER(c.contact_name) LIKE ? OR LOWER(l.hardware_id) LIKE ?)';
+      const s = `%${search.toLowerCase().trim()}%`;
       params.push(s, s, s, s);
     }
 
