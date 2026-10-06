@@ -6,12 +6,19 @@
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "postinstall": "cd server && npm install && cd ../client && npm install && npm run build",
     "server": "node --experimental-sqlite server/index.js",
     "client": "npm --prefix client run dev",
     "build:client": "npm --prefix client run build",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "start": "node --experimental-sqlite server/index.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
