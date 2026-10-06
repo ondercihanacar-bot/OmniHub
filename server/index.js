@@ -74,4 +74,19 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`   API Endpoint: http://0.0.0.0:${PORT}/api                     `);
   console.log(`   Heartbeat   : http://0.0.0.0:${PORT}/api/v1/license/heartbeat`);
   console.log(`================================================================`);
+
+  // 24/7 Keep-Alive Heartbeat (Render Sleep Prevention)
+  const PING_INTERVAL = 10 * 60 * 1000; // 10 minutes (Render spins down after 15 min inactivity)
+  const PUBLIC_URL = process.env.RENDER_EXTERNAL_URL || 'https://omnihub-sd23.onrender.com';
+  
+  setInterval(async () => {
+    try {
+      const res = await fetch(`${PUBLIC_URL}/api/health`);
+      if (res.ok) {
+        console.log(`[KEEP-ALIVE] Heartbeat sent to ${PUBLIC_URL}/api/health - Status: 200 OK`);
+      }
+    } catch (e) {
+      console.log(`[KEEP-ALIVE] Heartbeat ping notice:`, e.message);
+    }
+  }, PING_INTERVAL);
 });
