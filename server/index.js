@@ -65,13 +65,13 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`================================================================`);
   console.log(`   OmniHub - Merkezi Dağıtıcı ve Lisans Yönetim Portalı         `);
   console.log(`   Designed & Developed by Önder Cihan ACAR © 2026              `);
   console.log(`================================================================`);
-  console.log(`   Port        : http://localhost:${PORT}                       `);
-  console.log(`   API Endpoint: http://localhost:${PORT}/api                   `);
-  console.log(`   Heartbeat   : http://localhost:${PORT}/api/v1/license/heartbeat`);
+  console.log(`   Port        : http://0.0.0.0:${PORT}                         `);
+  console.log(`   API Endpoint: http://0.0.0.0:${PORT}/api                     `);
+  console.log(`   Heartbeat   : http://0.0.0.0:${PORT}/api/v1/license/heartbeat`);
   console.log(`================================================================`);
 });
