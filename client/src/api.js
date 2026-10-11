@@ -42,19 +42,20 @@ export async function apiRequest(endpoint, options = {}) {
     headers,
   });
 
-  if (response.status === 401) {
-    // Session expired or unauthenticated
+  if (response.status === 401 || response.status === 403) {
+    // Session expired, invalid, or unauthenticated
     setAuthToken(null);
     setCurrentUser(null);
     window.dispatchEvent(new CustomEvent('auth:expired'));
   }
 
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(data.error || 'İşlem sırasında bir hata oluştu');
   }
   return data;
 }
+
 
 export const api = {
   // Auth

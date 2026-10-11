@@ -19,10 +19,15 @@ import HeartbeatSimulatorModal from './components/HeartbeatSimulatorModal';
 import { getAuthToken, getCurrentUser, setAuthToken, setCurrentUser, api } from './api';
 
 export default function App() {
-  const [user, setUser] = useState(getCurrentUser());
+  const [user, setUser] = useState(() => {
+    const token = getAuthToken();
+    const currUser = getCurrentUser();
+    return token && currUser ? currUser : null;
+  });
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
 
   // Modals state
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);

@@ -19,6 +19,7 @@ import StatusBadge from '../components/StatusBadge';
 export default function DashboardPage({ onNavigate, onOpenGenerator, onOpenCertificate, onOpenRenew }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadDashboard();
@@ -26,17 +27,23 @@ export default function DashboardPage({ onNavigate, onOpenGenerator, onOpenCerti
 
   async function loadDashboard() {
     setLoading(true);
+    setError(null);
     try {
       const res = await api.getDashboardStats();
-      setStats(res.stats);
+      if (res && res.stats) {
+        setStats(res.stats);
+      } else {
+        throw new Error('İstatistik verisi alınamadı.');
+      }
     } catch (err) {
       console.error('Dashboard load failed:', err);
+      setError(err.message || 'Veriler yüklenirken bir hata oluştu');
     } finally {
       setLoading(false);
     }
   }
 
-  if (loading || !stats) {
+  if (loading && !stats) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[500px]">
         <div className="flex flex-col items-center gap-3">
@@ -46,6 +53,40 @@ export default function DashboardPage({ onNavigate, onOpenGenerator, onOpenCerti
       </div>
     );
   }
+
+  if (error && !stats) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-[500px]">
+        <div className="flex flex-col items-center gap-4 max-w-md text-center p-6 rounded-2xl bg-slate-900/80 border border-rose-500/40 shadow-xl">
+          <AlertTriangle className="w-10 h-10 text-rose-400" />
+          <div>
+            <h3 className="text-sm font-bold text-white mb-1">Veri Akışı Sağlanamadı</h3>
+            <p className="text-xs text-slate-400 font-mono">{error}</p>
+          </div>
+          <div className="flex items-center gap-3 mt-2">
+            <button
+              type="button"
+              onClick={loadDashboard}
+              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-semibold cursor-pointer transition-colors"
+            >
+              Tekrar Dene
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.clear();
+                window.location.reload();
+              }}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold cursor-pointer transition-colors"
+            >
+              Yeniden Giriş Yap
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 
   const { customers, licenses, productStats, upcomingRenewals, recentHeartbeats } = stats;
 
